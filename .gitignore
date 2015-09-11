@@ -1,3 +1,5 @@
 my-env
 *~
 *.pyc
+*egg-info
+dist
