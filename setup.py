@@ -11,7 +11,7 @@ with open('README.md', 'r') as f:
 install_requires = []
 with open('requirements.txt', 'r') as f:
     for line in f:
-        install_requires.append(line)
+        install_requires.append(line.rstrip())
 
 kwargs = {
     'name': 'davd',
