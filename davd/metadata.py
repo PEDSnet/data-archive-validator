@@ -59,7 +59,7 @@ def validate_record(record, archive_path, check_commit_url, version):
 
     # Open the file and get the header row
     try:
-        with open(file_path) as f:
+        with io.open(file_path, encoding='utf_8_sig') as f:
             header = [x.lower() for x in next(csv.reader(f))]
     except IOError as e:
         errors.append('cannot open file: {}'.format(e))
@@ -73,11 +73,12 @@ def validate_record(record, archive_path, check_commit_url, version):
         sha256, valid_utf8 = utils.file_digest_and_utf8_check(file_path,
                                                               'sha256')
 
+        if not valid_utf8:
+            errors.append('data file encoding is not in the UTF-8 range')
+
         if sha256 != record['checksum'].lower():
             errors.append('local checksum does not match')
 
-        if not valid_utf8:
-            errors.append('data file encoding is not in the UTF-8 range')
 
     data_model = record['cdm'].lower()
     data_table = record['table'].lower()
