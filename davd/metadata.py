@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import io
 import os
 import csv
 import urllib2
@@ -33,7 +34,7 @@ METADATA_FIELDS = set([
 
 def read(path):
     """Takes a path to a metadata file and returns a list of mapped records."""
-    with open(path, 'rU') as f:
+    with io.open(path, 'rU', encoding='utf_8_sig') as f:
         records = list(csv.DictReader(f))
         norm_records = []
 
@@ -160,9 +161,11 @@ def validate(path, version, check_commit_url=False, processes=None):
                               .format(path, e))
 
     if set(records[0]) != METADATA_FIELDS:
-        raise ValidationError('metadata file "{}" does not have the '
-                              'expected header fields: {}'
-                              .format(path, ', '.join(METADATA_FIELDS)))
+        raise ValidationError('metadata file "{f}" does not have the '
+                              'expected header fields: {exp} (actual fields: {act})'
+                              .format(f=path,
+                                      exp=', '.join(["'{}'".format(x) for x in METADATA_FIELDS]),
+                                      act=', '.join(["'{}'".format(x) for x in records[0]])))
 
     archive_path = os.path.dirname(path)
 
