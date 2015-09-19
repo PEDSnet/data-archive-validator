@@ -1,5 +1,7 @@
 # PEDSnet Data Archive Validator
 
+[![Coverage Status](https://coveralls.io/repos/PEDSnet/data-archive-validator/badge.svg?branch=master&service=github)](https://coveralls.io/github/PEDSnet/data-archive-validator?branch=master)
+
 Validate unpacked PEDSnet data archives.
 
 ## Command Line/Python

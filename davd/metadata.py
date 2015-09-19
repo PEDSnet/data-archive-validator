@@ -5,10 +5,10 @@ import os
 import csv
 import urllib2
 import logging
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, Process
 
 from davd import utils
-import model
+from davd import model
 
 
 class ValidationError(Exception):
@@ -16,7 +16,6 @@ class ValidationError(Exception):
 
 
 logger = logging.getLogger(__name__)
-
 
 DEFAULT_METADATA_FILE = 'metadata.csv'
 
@@ -32,10 +31,17 @@ METADATA_FIELDS = set([
 ])
 
 
+def utf_dict_reader(utf8_data, **kwargs):
+    csv_reader = csv.DictReader(utf8_data, **kwargs)
+    for row in csv_reader:
+        yield {key: unicode(value, 'utf-8') for key, value in row.iteritems()}
+
+
 def read(path):
     """Takes a path to a metadata file and returns a list of mapped records."""
-    with io.open(path, 'rU', encoding='utf_8_sig') as f:
-        records = list(csv.DictReader(f))
+
+    with open(path, 'rb') as f:
+        records = list(utf_dict_reader(f))
         norm_records = []
 
         for record in records:
@@ -79,7 +85,6 @@ def validate_record(record, archive_path, check_commit_url, version):
         if sha256 != record['checksum'].lower():
             errors.append('local checksum does not match')
 
-
     data_model = record['cdm'].lower()
     data_table = record['table'].lower()
 
@@ -101,10 +106,6 @@ def validate_record(record, archive_path, check_commit_url, version):
             if not header:
                 errors.append('no header is present')
 
-            # The header can be any subset of all fields at this stage.
-            # Note, this not check if the natural key fields are present,
-            # however some natural key fields are nullable at this point
-            # in time which makes this check moot.
             else:
                 invalid_fields = set(header) - set(table_fields)
                 if invalid_fields:
@@ -145,7 +146,7 @@ def _validate_worker(*args, **kwargs):
 
 
 # TODO: should not need to pass in version; that should be in the metadata file
-def validate(path, version, check_commit_url=False, processes=None):
+def validate(path, version, check_commit_url=True, processes=None):
     """Validates a metadata file.
 
     processes is the number of processes to use when computing checksums and
@@ -162,11 +163,14 @@ def validate(path, version, check_commit_url=False, processes=None):
                               .format(path, e))
 
     if set(records[0]) != METADATA_FIELDS:
-        raise ValidationError('metadata file "{f}" does not have the '
-                              'expected header fields: {exp} (actual fields: {act})'
-                              .format(f=path,
-                                      exp=', '.join(["'{}'".format(x) for x in METADATA_FIELDS]),
-                                      act=', '.join(["'{}'".format(x) for x in records[0]])))
+        raise ValidationError(
+            'metadata file "{f}" does not have the '
+            'expected header fields: {exp} (actual fields: {act})'
+            .format(f=path,
+                    exp=', '.join(["'{}'".format(x) for x in
+                                   METADATA_FIELDS]),
+                    act=', '.join(["'{}'".format(x) for x in
+                                   records[0]])))
 
     archive_path = os.path.dirname(path)
 
@@ -199,13 +203,28 @@ def validate(path, version, check_commit_url=False, processes=None):
         raise
 
 
-def org_name(path):
-    """Return the org_name (organization_source_value) for a metadata file.
-    Assumes the metadata file has already been validated.
-    """
+def coverage_multiprocessing_process(): # pragma: no cover
     try:
-        records = read(path)
-    except Exception as e:
-        raise ValidationError('unable to read metadata file "{}": {}'
-                              .format(path, e))
-    return records[0]['organization']
+        import coverage
+    except:
+        # give up monkey-patching if coverage not installed
+        return
+
+    from coverage.collector import Collector
+    from coverage.control import coverage
+    # detect if coverage was running in forked process
+    if Collector._collectors:
+        class Process_WithCoverage(Process):
+            def _bootstrap(self):
+                cov = coverage(data_suffix=True)
+                cov.start()
+                try:
+                    return Process._bootstrap(self)
+                finally:
+                    cov.stop()
+                    cov.save()
+        return Process_WithCoverage
+
+ProcessCoverage = coverage_multiprocessing_process()
+if ProcessCoverage:
+    Process = ProcessCoverage
