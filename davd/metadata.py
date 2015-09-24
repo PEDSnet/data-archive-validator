@@ -3,9 +3,10 @@ from __future__ import unicode_literals
 import io
 import os
 import csv
-import urllib2
 import logging
 from multiprocessing import Pool, cpu_count, Process
+import sys
+import urllib2
 
 from davd import utils
 from davd import model
@@ -128,7 +129,8 @@ def validate_record(record, archive_path, check_commit_url, version):
                               '200 response (instead: {})'
                               .format(record['etl'], urlf.getcode()))
         except urllib2.URLError as e:
-            errors.append('error checking commit URL: {}'.format(e.reason))
+            errors.append('error checking commit URL {}: {}'.format(
+                record['etl'], e.reason))
 
     logger.info('end validation', extra={
         'record': record,
@@ -143,6 +145,14 @@ def _validate_worker(*args, **kwargs):
         return validate_record(*args, **kwargs)
     except (KeyboardInterrupt, SystemExit):
         pass
+
+
+def report_errors_and_abort(errors):
+    sys.stderr.write('Errors:\n')
+    for file_name, file_errors in errors.iteritems():
+        for error in file_errors:
+            sys.stderr.write('{0}: {1}\n'.format(file_name, error))
+    sys.exit(1)
 
 
 # TODO: should not need to pass in version; that should be in the metadata file
@@ -197,34 +207,8 @@ def validate(path, version, check_commit_url=True, processes=None):
                 errors[file_name] = error
 
         if errors:
-            raise ValidationError(errors)
+            report_errors_and_abort(errors)
+
     except (KeyboardInterrupt, SystemExit):
         pool.terminate()
         raise
-
-
-def coverage_multiprocessing_process(): # pragma: no cover
-    try:
-        import coverage
-    except:
-        # give up monkey-patching if coverage not installed
-        return
-
-    from coverage.collector import Collector
-    from coverage.control import coverage
-    # detect if coverage was running in forked process
-    if Collector._collectors:
-        class Process_WithCoverage(Process):
-            def _bootstrap(self):
-                cov = coverage(data_suffix=True)
-                cov.start()
-                try:
-                    return Process._bootstrap(self)
-                finally:
-                    cov.stop()
-                    cov.save()
-        return Process_WithCoverage
-
-ProcessCoverage = coverage_multiprocessing_process()
-if ProcessCoverage:
-    Process = ProcessCoverage

@@ -30,7 +30,7 @@ Currently, the Dockerfile wraps the CLI script and not the (forthcoming) web ser
 ```sh
 git pull https://github.com/PEDSnet/data-archive-validator.git
 cd data-archive-validator
-docker build -t davd . && docker run davd davd -v /my/archive:/data /data/metadata.csv 2.0.0
+docker build -t davd . && docker run -v /my/archive:/data davd davd /data/metadata.csv 2.0.0
 ```
 
 `/my/archive` is a directory containing the unpacked data archive on the 
