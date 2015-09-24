@@ -1,0 +1,3 @@
+organization,filename,checksum,cdm,table,etl
+test,care_site.csv,8cf517fb3d6657c067d6d27a38ab4daad082423cc575bb892bea447b73e2f444,PEDSNET,CARE_SITE,http://www.google.com/
+test,person.csv,78c6553c189f18e87f3972f0096d8636e783641135ffa03b65941e7bcd0bd03c,PEDSNET,person,http://www.google.com/

@@ -33,6 +33,9 @@ class Model(object):
 
     def __init__(self, name, version):
 
+        # TODO: one-time hack that should be removed for 2.1+
+        if name == 'i2b2' and version == '2.0.0':
+            name = 'i2b2_pedsnet'
         tpl = ('http://data-models.origins.link/models/'
                '{name}/{version}?format=json')
         url = tpl.format(name=name, version=version)
@@ -42,7 +45,8 @@ class Model(object):
             raise Exception('Network connection error accessing {0}'.format(
                 url))
         if r.status_code == 404:
-            raise ValueError('Invalid name or version (URL {})'.format(url))
+            raise ValueError(
+                'Invalid model name or version (URL {})'.format(url))
         cdm = r.json()
         self._name = name
         self._version = version
