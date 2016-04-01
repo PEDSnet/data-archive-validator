@@ -113,6 +113,9 @@ def validate_record(record, archive_path, check_commit_url, version):
                     tpl = 'header fields do not match table fields: {}'
                     errors.append(tpl.format(', '
                                              .join(sorted(invalid_fields))))
+                    tpl2 = '{} full table fields: {}'
+                    errors.append(tpl2.format(data_table, ', '
+                                             .join(sorted(table_fields))))
 
     if not record['etl']:
         errors.append('commit URL is not specified')

@@ -13,6 +13,7 @@ class Model(object):
             'drug_exposure',
             'location',
             'measurement',
+            'measurement_organism',
             'observation',
             'observation_period',
             'person',
@@ -36,7 +37,7 @@ class Model(object):
         # TODO: one-time hack that should be removed for 2.1+
         if name == 'i2b2' and version == '2.0.0':
             name = 'i2b2_pedsnet'
-        tpl = ('http://data-models.origins.link/models/'
+        tpl = ('http://data-models-service.research.chop.edu/models/'
                '{name}/{version}?format=json')
         url = tpl.format(name=name, version=version)
         try:
